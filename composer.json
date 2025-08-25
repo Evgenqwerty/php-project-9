@@ -1,0 +1,24 @@
+{
+    "name": "hexlet/code",
+    "autoload": {
+        "psr-4": {
+            "Hexlet\\Code\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "evgeniy",
+            "email": "kopeikin45@gmail.com"
+        }
+    ],
+    "require": {
+        "slim/slim": "^4.11",
+        "slim/psr7": "^1.6",
+        "slim/http": "^1.3",
+        "slim/php-view": "^3.2",
+        "php-di/php-di": "^7.0"
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.7"
+    }
+}
