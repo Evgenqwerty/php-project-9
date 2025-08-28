@@ -5,13 +5,13 @@ namespace Hexlet\Code;
 /**
  * Создание класса Connection
  */
-class Connection
+final class Connection
 {
     /**
      * Connection
      * тип @var
      */
-    private static $conn;
+    private static ?Connection $conn = null;
 
     /**
      * Подключение к базе данных и возврат экземпляра объекта \PDO
@@ -20,8 +20,19 @@ class Connection
      */
     public function connect()
     {
-        // чтение параметров в файле конфигурации ini
-        $params = parse_ini_file('database.ini');
+        if (getenv('DATABASE_URL')) {
+            $databaseUrl = parse_url(getenv('DATABASE_URL'));
+        }
+        if (isset($databaseUrl['host'])) {       // необходимо проверять произвольное поле,
+            // потому что по умолчанию запишет в $databaseUrl почти пустой массив
+            $params['host'] = $databaseUrl['host'];
+            $params['port'] = isset($databaseUrl['port']) ? $databaseUrl['port'] : null;
+            $params['database'] = isset($databaseUrl['path']) ? ltrim($databaseUrl['path'], '/') : null;
+            $params['user'] = isset($databaseUrl['user']) ? $databaseUrl['user'] : null;
+            $params['passw'] = isset($databaseUrl['pass']) ? $databaseUrl['pass'] : null;
+        } else {
+            $params = parse_ini_file('database.ini');
+        }
         if ($params === false) {
             throw new \Exception("Error reading database configuration file");
         }
@@ -46,7 +57,7 @@ class Connection
     public static function get()
     {
         if (null === static::$conn) {
-            static::$conn = new static();
+            static::$conn = new self();
         }
 
         return static::$conn;
