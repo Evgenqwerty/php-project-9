@@ -1,5 +1,11 @@
+Если сеанс только что стартовал, очистить таблицы urls и url_checks:
+
 TRUNCATE url_checks;
 TRUNCATE urls CASCADE;
+
+
+
+Если таблиц urls и url_checks не существует, то создать их:
 
 CREATE TABLE urls (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                    name varchar(255),

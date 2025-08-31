@@ -9,18 +9,28 @@ use Hexlet\Code\Query;
 use Hexlet\Code\Misc;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
+use DiDom\Document;
+
+session_start();
+
+if (!isset($_SESSION['start'])) {
+    $pdo = Connection::get()->connect();
+    if (Misc\tableExists($pdo, "url_checks")) {
+        $pdo->exec("TRUNCATE url_checks");
+    }
+    if (Misc\tableExists($pdo, "urls")) {
+        $pdo->exec("TRUNCATE urls CASCADE");
+    }
+    $_SESSION['start'] = true;
+}
 
 if (PHP_SAPI === 'cli-server' && $_SERVER['SCRIPT_FILENAME'] !== __FILE__) {
     return false;
 }
 
 try {
-//    Connection::get()->connect();
-//    echo 'A connection to the PostgreSQL database sever has been established successfully.<br>';
     $pdo = Connection::get()->connect();
     if (!Misc\tableExists($pdo, "urls")) {
-//        $pdo->exec("TRUNCATE urls");
-//    } else {
         $pdo->exec("CREATE TABLE urls (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, name varchar(255), created_at timestamp)");} // phpcs:ignore
         if (!Misc\tableExists($pdo, "url_checks")) {
             $pdo->exec("CREATE TABLE url_checks (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -31,18 +41,9 @@ try {
                                              description text,
                                              created_at timestamp)");
         }
-//    $pdo->exec("CREATE TABLE foxes (name varchar, slug varchar);");
-//    echo 'An instance of database connection has been created successfully.<br>';
-//    echo 'A table has been created successfully.';
-//    $pdo->exec("INSERT INTO foxes VALUES ('black fox', 'bf'), ('red fox', 'rf'), ('iridescent fox', 'if');");
-//    $query = new Query($pdo, 'foxes');
-//    $query->insertValues('diamond fox', 'df');
-//    print_r($pdo->query("SELECT * FROM foxes;")->fetchAll(\PDO::FETCH_ASSOC));
 } catch (\PDOException $e) {
     echo $e->getMessage();
 }
-
-session_start();
 
 $container = new Container();
 $container->set('renderer', function () {
@@ -78,10 +79,23 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     } catch (TransferException $e) {
         $this->get('flash')->addMessage('failure', 'Произошла ошибка при проверке, не удалось подключиться');
     }
+    $document = new Document($checkedUrl, true);
+    if ($document->has('h1')) {
+        $h1 = $document->find('h1');
+        $check['h1'] = $h1[0]->text();
+    }
+    if ($document->has('title')) {
+        $title = $document->find('title');
+        $check['title'] = $title[0]->text();
+    }
+    if ($document->has('meta[name=description]')) {
+        $desc = $document->find('meta[name=description]');
+        $check['description'] = $desc[0]->getAttribute('content');
+    }
     if ($check['status_code']) {
         try {
             $query = new Query($pdo, 'url_checks');
-            $newId = $query->insertValuesChecks($check['url_id'], $check['date'], $check['status_code']);
+            $newId = $query->insertValuesChecks($check);
         } catch (\PDOException $e) {
             echo $e->getMessage();
         }
@@ -122,9 +136,10 @@ $app->post('/urls', function ($request, $response) use ($router) {
         } else {
             $this->get('flash')->addMessage('success', 'Страница уже существует');
         }
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound ?? $newId]), 302);    }
+        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound ?? $newId]), 302);
+    }
     $params = ['url' => $url, 'errors' => $errors];
-    return $this->get('renderer')->render($response, "main.phtml", $params);
+    return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
 });
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
