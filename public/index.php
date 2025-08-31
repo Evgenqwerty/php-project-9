@@ -32,7 +32,7 @@ try {
     $pdo = Connection::get()->connect();
     if (!Misc\tableExists($pdo, "urls")) {
         $pdo->exec("CREATE TABLE urls (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, name varchar(255), created_at timestamp)");} // phpcs:ignore
-        if (!Misc\tableExists($pdo, "url_checks")) {
+    if (!Misc\tableExists($pdo, "url_checks")) {
             $pdo->exec("CREATE TABLE url_checks (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                                              url_id bigint REFERENCES urls (id),
                                              status_code smallint,
@@ -40,7 +40,7 @@ try {
                                              title varchar(255),
                                              description text,
                                              created_at timestamp)");
-        }
+    }
 } catch (\PDOException $e) {
     echo $e->getMessage();
 }
