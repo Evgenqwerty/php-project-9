@@ -6,43 +6,68 @@ use Slim\Factory\AppFactory;
 use DI\Container;
 use Hexlet\Code\Connection;
 use Hexlet\Code\Query;
-use Hexlet\Code\Misc;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
+use Illuminate\Support\Arr;
 
 session_start();
 
-if (!isset($_SESSION['start'])) {
+
+
+try {
     $pdo = Connection::get()->connect();
-    if (Misc\tableExists($pdo, "url_checks")) {
-        $pdo->exec("TRUNCATE url_checks");
+    $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+
+    if (!isset($_SESSION['start'])) {
+        $pdo->exec("TRUNCATE TABLE url_checks");
+        $pdo->exec("TRUNCATE TABLE urls CASCADE");
+        $_SESSION['start'] = true;
     }
-    if (Misc\tableExists($pdo, "urls")) {
-        $pdo->exec("TRUNCATE urls CASCADE");
+
+    $urlsTableExists = $pdo->query("
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'urls'
+        )
+    ")->fetchColumn();
+
+    if (!$urlsTableExists) {
+        $pdo->exec("CREATE TABLE urls (
+            id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            name varchar(255) NOT NULL UNIQUE,
+            created_at timestamp DEFAULT CURRENT_TIMESTAMP
+        )");
     }
-    $_SESSION['start'] = true;
+
+    $checksTableExists = $pdo->query("
+        SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'url_checks'
+        )
+    ")->fetchColumn();
+
+    if (!$checksTableExists) {
+        $pdo->exec("CREATE TABLE url_checks (
+            id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+            url_id bigint NOT NULL,
+            status_code smallint,
+            h1 varchar(255),
+            title varchar(255),
+            description text,
+            created_at timestamp 
+        )");
+    }
+
+} catch (\PDOException $e) {
+    echo "Database error: " . $e->getMessage();
+    exit;
 }
 
 if (PHP_SAPI === 'cli-server' && $_SERVER['SCRIPT_FILENAME'] !== __FILE__) {
     return false;
-}
-
-try {
-    $pdo = Connection::get()->connect();
-    if (!Misc\tableExists($pdo, "urls")) {
-        $pdo->exec("CREATE TABLE urls (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY, name varchar(255), created_at timestamp)");} // phpcs:ignore
-    if (!Misc\tableExists($pdo, "url_checks")) {
-            $pdo->exec("CREATE TABLE url_checks (id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                                             url_id bigint REFERENCES urls (id),
-                                             status_code smallint,
-                                             h1 varchar(255),
-                                             title varchar(255),
-                                             description text,
-                                             created_at timestamp)");
-    }
-} catch (\PDOException $e) {
-    echo $e->getMessage();
 }
 
 $container = new Container();
@@ -117,13 +142,21 @@ $app->post('/urls', function ($request, $response) use ($router) {
     if (count($errors) === 0) {
         $url['name'] = parse_url($url['name'], PHP_URL_SCHEME) . "://" . parse_url($url['name'], PHP_URL_HOST);
         $pdo = Connection::get()->connect();
-        $currentUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
-        foreach ($currentUrls as $item) {
-            if ($item['name'] === $url['name']) {
-                $urlFound = $item;
-                $idFound = $item['id'];
-            }
+
+
+
+        $stmt = $pdo->prepare("SELECT id FROM urls WHERE name = :name");
+        $stmt->bindValue(':name', $url['name']);
+        $stmt->execute();
+        $existingUrl = $stmt->fetch();
+
+        if ($existingUrl) {
+            $idFound = $existingUrl['id'];
+            $urlFound = $existingUrl;
         }
+
+
+
         if (!isset($urlFound)) {
             try {
                 $pdo = Connection::get()->connect();
@@ -144,7 +177,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
     $pdo = Connection::get()->connect();
-    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
+    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll();
     foreach ($allUrls as $item) {
         if ($item['id'] == $args['id']) {
             $urlFound = $item;
@@ -153,7 +186,7 @@ $app->get('/urls/{id}', function ($request, $response, $args) {
     if (!isset($urlFound)) {
         return $response->withStatus(404);
     }
-    $checks = $pdo->query("SELECT * FROM url_checks WHERE url_id = {$args['id']}")->fetchAll(\PDO::FETCH_ASSOC);
+    $checks = $pdo->query("SELECT * FROM url_checks WHERE url_id = {$args['id']}")->fetchAll();
     $flashes = $this->get('flash')->getMessages();
     $params = ['url' => $urlFound, 'checks' => array_reverse($checks), 'flash' => $flashes];
     return $this->get('renderer')->render($response, 'show.phtml', $params);
@@ -161,20 +194,37 @@ $app->get('/urls/{id}', function ($request, $response, $args) {
 
 $app->get('/urls', function ($request, $response) {
     $pdo = Connection::get()->connect();
-    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
-    $recentChecks = $pdo->query("SELECT DISTINCT ON (url_id) url_id, created_at, status_code
-                                 FROM url_checks
-                                 ORDER BY url_id, created_at DESC;")->fetchAll(\PDO::FETCH_ASSOC);
-    $combined = array_map(function ($url) use ($recentChecks) {
-        foreach ($recentChecks as $recCheck) {
-            if ($url['id'] === $recCheck['url_id']) {
-                $url['last_check_time'] = $recCheck['created_at'];
-                $url['status_code'] = $recCheck['status_code'];
-            }
+
+    // Получаем все URL
+    $allUrls = $pdo->query("SELECT * FROM urls ORDER BY created_at DESC")->fetchAll();
+
+    // Получаем последние проверки для каждого URL
+    $recentChecks = $pdo->query("
+        SELECT DISTINCT ON (url_id) url_id, created_at, status_code
+        FROM url_checks
+        ORDER BY url_id, created_at DESC
+    ")->fetchAll();
+
+    // Преобразуем массив проверок в ассоциативный массив по url_id
+    $checksByUrlId = Arr::keyBy($recentChecks, 'url_id');
+
+    // Объединяем данные
+    $combined = array_map(function ($url) use ($checksByUrlId) {
+        $urlId = $url['id'];
+
+        if (isset($checksByUrlId[$urlId])) {
+            $check = $checksByUrlId[$urlId];
+            $url['last_check_time'] = $check['created_at'];
+            $url['status_code'] = $check['status_code'];
+        } else {
+            $url['last_check_time'] = null;
+            $url['status_code'] = null;
         }
+
         return $url;
     }, $allUrls);
-    $params = ['urls' => array_reverse($combined)];
+
+    $params = ['urls' => $combined];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
 })->setName('list');
 
