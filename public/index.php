@@ -196,36 +196,40 @@ $app->get('/urls', function ($request, $response) {
     $pdo = Connection::get()->connect();
 
     // Получаем все URL
-    $allUrls = $pdo->query("SELECT * FROM urls ORDER BY created_at DESC")->fetchAll();
+    $urls = $pdo->query("SELECT * FROM urls ORDER BY created_at DESC")->fetchAll();
 
-    // Получаем последние проверки для каждого URL
-    $recentChecks = $pdo->query("
-        SELECT DISTINCT ON (url_id) url_id, created_at, status_code
+    // Получаем последние проверки для каждого URL (все поля)
+    $checksStmt = $pdo->query("
+        SELECT DISTINCT ON (url_id) *
         FROM url_checks
         ORDER BY url_id, created_at DESC
-    ")->fetchAll();
+    ");
+    $recentChecks = $checksStmt->fetchAll();
 
-    // Преобразуем массив проверок в ассоциативный массив по url_id
-    $checksByUrlId = Arr::keyBy($recentChecks, 'url_id');
+    // Собираем данные в ассоциативный массив
+    $checksMap = Arr::keyBy($recentChecks, 'url_id');
 
     // Объединяем данные
-    $combined = array_map(function ($url) use ($checksByUrlId) {
+    foreach ($urls as &$url) {
         $urlId = $url['id'];
 
-        if (isset($checksByUrlId[$urlId])) {
-            $check = $checksByUrlId[$urlId];
-            $url['last_check_time'] = $check['created_at'];
+        if (isset($checksMap[$urlId])) {
+            $check = $checksMap[$urlId];
             $url['status_code'] = $check['status_code'];
+            $url['h1'] = $check['h1'];
+            $url['title'] = $check['title'];
+            $url['description'] = $check['description'];
+            $url['last_check_time'] = $check['created_at'];
         } else {
-            $url['last_check_time'] = null;
             $url['status_code'] = null;
+            $url['h1'] = null;
+            $url['title'] = null;
+            $url['description'] = null;
+            $url['last_check_time'] = null;
         }
+    }
 
-        return $url;
-    }, $allUrls);
-
-    $params = ['urls' => $combined];
+    $params = ['urls' => $urls];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
 })->setName('list');
-
 $app->run();
