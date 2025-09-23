@@ -61,6 +61,7 @@
             <tbody>
             <tr>
                 <th>ID</th>
+                <th>urlId</th>
                 <th>Код ответа</th>
                 <th>h1</th>
                 <th>title</th>
@@ -70,6 +71,7 @@
                 <?php foreach ($checks as $check) : ?>
                     <tr>
                         <td><?= $check['id'] ?></td>
+                        <td><?= $check['url_id'] ?></td>
                         <td><?= $check['status_code'] ?? '' ?></td>
                         <td><?= $check['h1'] ?? '' ?></td>
                         <td><?= $check['title'] ?? '' ?></td>
