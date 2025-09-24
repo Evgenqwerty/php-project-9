@@ -133,7 +133,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
     $url = $request->getParsedBodyParam('url');
     $url['date'] = date('Y-m-d H:i:s');
     $errors = [];
-    if (filter_var($url['name'], FILTER_VALIDATE_URL) === false) {
+    if ((filter_var($url['name'], FILTER_VALIDATE_URL) === false) or (!in_array(parse_url($url['name'], PHP_URL_SCHEME), ['http', 'https']))) {  // phpcs:ignore
         $errors['name'] = 'Некорректный URL';
     }
     if (strlen($url['name']) < 1) {
@@ -142,21 +142,14 @@ $app->post('/urls', function ($request, $response) use ($router) {
     if (count($errors) === 0) {
         $url['name'] = parse_url($url['name'], PHP_URL_SCHEME) . "://" . parse_url($url['name'], PHP_URL_HOST);
         $pdo = Connection::get()->connect();
-
-
-
-        $stmt = $pdo->prepare("SELECT id FROM urls WHERE name = :name");
-        $stmt->bindValue(':name', $url['name']);
-        $stmt->execute();
-        $existingUrl = $stmt->fetch();
-
-        if ($existingUrl) {
-            $idFound = $existingUrl['id'];
-            $urlFound = $existingUrl;
+        $currentUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($currentUrls as $item) {
+            if ($item['name'] === $url['name']) {
+                $urlFound = $item;
+                $idFound = $item['id'];
+            }
         }
-
-
-
+        $newId = null;
         if (!isset($urlFound)) {
             try {
                 $pdo = Connection::get()->connect();
