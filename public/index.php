@@ -78,7 +78,7 @@ $container->set('flash', function () {
     return new \Slim\Flash\Messages();
 });
 
-$app = AppFactory::setContainer($container);
+AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 $app = AppFactory::createFromContainer($container);
@@ -105,8 +105,10 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     }
     $document = new Document($checkedUrl, true);
     if ($document->has('h1')) {
-        $h1 = $document->find('h1');
-        $check['h1'] = $h1[0]->text();
+        $h1Elements = $document->find('h1');
+        if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
+            $check['h1'] = $h1Elements[0]->text();
+        }
     }
     if ($document->has('title')) {
         $title = $document->find('title');
