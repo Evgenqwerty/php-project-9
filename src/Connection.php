@@ -20,11 +20,11 @@ final class Connection
      */
     public function connect()
     {
-        $databaseUrl = getenv('DATABASE_URL');
+        $databaseUrll = getenv('DATABASE_URL');
         if ($databaseUrl === false || empty($databaseUrl)) {
             throw new RuntimeException('DATABASE_URL environment variable is not set');
         }
-        $databaseUrl = parse_url(getenv('DATABASE_URL'));
+        $databaseUrl = parse_url($databaseUrll);
         if (isset($databaseUrl['host'])) {       // необходимо проверять произвольное поле,
             // потому что по умолчанию запишет в $databaseUrl почти пустой массив
             $params['host'] = $databaseUrl['host'];
