@@ -111,8 +111,10 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
         }
     }
     if ($document->has('title')) {
-        $title = $document->find('title');
-        $check['title'] = $title[0]->text();
+        $titleElements = $document->find('title');
+        if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
+            $check['title'] = $titleElements[0]->text();
+        }
     }
     if ($document->has('meta[name=description]')) {
         $desc = $document->find('meta[name=description]');
