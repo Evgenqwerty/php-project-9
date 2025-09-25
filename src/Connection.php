@@ -21,9 +21,9 @@ final class Connection
     public function connect()
     {
         $databaseUr = getenv('DATABASE_URL');
-        $databaseUr = is_string($databaseUrl) ? $databaseUrl : '';
-        if (!empty($databaseUrl)) {
-            $databaseUrl = parse_url($databaseUrl);
+        $databaseUrk = is_string($databaseUr) ? $databaseUr : '';
+        if (!empty($databaseUrk)) {
+            $databaseUrl = parse_url($databaseUrk);
         }
         if (isset($databaseUrl['host'])) {       // необходимо проверять произвольное поле,
             // потому что по умолчанию запишет в $databaseUrl почти пустой массив
