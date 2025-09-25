@@ -120,7 +120,7 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
         $desc = $document->find('meta[name=description]');
         $check['description'] = $desc[0]->getAttribute('content');
     }
-    if ($check['status_code']) {
+    if (isset($check['status_code']) && !empty($check['status_code'])) {
         try {
             $query = new Query($pdo, 'url_checks');
             $newId = $query->insertValuesChecks($check);
