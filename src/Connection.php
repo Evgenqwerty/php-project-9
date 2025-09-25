@@ -20,10 +20,10 @@ final class Connection
      */
     public function connect()
     {
-        $databaseUrl = getenv('DATABASE_URL');
-        $databaseUrl = is_string($databaseUrl) ? $databaseUrl : '';
+        $databaseUr = getenv('DATABASE_URL');
+        $databaseUr = is_string($databaseUrl) ? $databaseUrl : '';
         if (!empty($databaseUrl)) {
-            $databaseParts = parse_url($databaseUrl);
+            $databaseUrl = parse_url($databaseUrl);
         }
         if (isset($databaseUrl['host'])) {       // необходимо проверять произвольное поле,
             // потому что по умолчанию запишет в $databaseUrl почти пустой массив
