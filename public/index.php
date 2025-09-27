@@ -13,25 +13,6 @@ use Illuminate\Support\Arr;
 
 session_start();
 
-try {
-    $pdo = Connection::get()->connect();
-    $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-
-    // Просто проверяем что таблицы существуют
-    $urlsTableExists = $pdo->query("SELECT to_regclass('public.urls')")->fetchColumn();
-    $checksTableExists = $pdo->query("SELECT to_regclass('public.url_checks')")->fetchColumn();
-
-    if (!$urlsTableExists || !$checksTableExists) {
-        throw new \RuntimeException('Database tables not found. Please run database.sql first.');
-    }
-} catch (\PDOException $e) {
-    echo "Database error: " . $e->getMessage();
-    exit;
-} catch (\RuntimeException $e) {
-    echo $e->getMessage();
-    exit;
-}
-
 if (PHP_SAPI === 'cli-server' && $_SERVER['SCRIPT_FILENAME'] !== __FILE__) {
     return false;
 }
@@ -56,7 +37,7 @@ $router = $app->getRouteCollector()->getRouteParser();
 $app->get('/', function ($request, $response) {
     $params = ['greeting' => 'Welcome'];
     return $this->get('renderer')->render($response, 'main.phtml', $params);
-})->setName('home');
+});
 
 $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) use ($router) {
     $check['url_id'] = $args['url_id'];
@@ -90,13 +71,14 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     if (isset($check['status_code']) && !empty($check['status_code'])) {
         try {
             $query = new Query($pdo, 'url_checks');
+            $newId = $query->insertValuesChecks($check);
         } catch (\PDOException $e) {
             echo $e->getMessage();
         }
     }
     $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     return $response->withRedirect($router->urlFor('show_url_info', ['id' => $args['url_id']]), 302);
-})->setName('url_checks');
+});
 
 $app->post('/urls', function ($request, $response) use ($router) {
     $url = $request->getParsedBodyParam('url');
@@ -135,7 +117,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
     }
     $params = ['url' => $url, 'errors' => $errors];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
-})->setName('urls_create');
+});
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
     $pdo = Connection::get()->connect();
