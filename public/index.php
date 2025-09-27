@@ -119,7 +119,11 @@ $app->post('/urls', function ($request, $response) use ($router) {
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
 })->setName('urls_create');
 
-$app->get('/urls/{id}', function ($request, $response, $args) {
+$app->get('/urls/{id:[0-9]+}', function (
+    Psr\Http\Message\ServerRequestInterface $request,
+                                         Psr\Http\Message\ResponseInterface $response,
+                                         array $args
+) {
     $pdo = Connection::get()->connect();
     $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll();
     foreach ($allUrls as $item) {
@@ -130,6 +134,8 @@ $app->get('/urls/{id}', function ($request, $response, $args) {
     if (!isset($urlFound)) {
         return $response->withStatus(404);
     }
+    $stmt = $pdo->prepare("SELECT * FROM url_checks WHERE url_id = :url_id ORDER BY created_at DESC");
+    $stmt->execute(['url_id' => (int)$args['id']]);
     $checks = $pdo->query("SELECT * FROM url_checks WHERE url_id = {$args['id']}")->fetchAll();
     $flashes = $this->get('flash')->getMessages();
     $params = ['url' => $urlFound, 'checks' => array_reverse($checks), 'flash' => $flashes];
