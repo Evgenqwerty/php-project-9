@@ -121,8 +121,8 @@ $app->post('/urls', function ($request, $response) use ($router) {
 
 $app->get('/urls/{id:[0-9]+}', function (
     Psr\Http\Message\ServerRequestInterface $request,
-                                         Psr\Http\Message\ResponseInterface $response,
-                                         array $args
+    Psr\Http\Message\ResponseInterface $response,
+    array $args
 ) {
     $pdo = Connection::get()->connect();
     $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll();
