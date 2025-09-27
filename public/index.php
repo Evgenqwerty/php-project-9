@@ -13,55 +13,23 @@ use Illuminate\Support\Arr;
 
 session_start();
 
-
-
 try {
     $pdo = Connection::get()->connect();
     $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 
-    if (!isset($_SESSION['start'])) {
-        $pdo->exec("TRUNCATE TABLE url_checks");
-        $pdo->exec("TRUNCATE TABLE urls CASCADE");
-        $_SESSION['start'] = true;
+    // Просто проверяем что таблицы существуют
+    $urlsTableExists = $pdo->query("SELECT to_regclass('public.urls')")->fetchColumn();
+    $checksTableExists = $pdo->query("SELECT to_regclass('public.url_checks')")->fetchColumn();
+
+    if (!$urlsTableExists || !$checksTableExists) {
+        throw new \RuntimeException('Database tables not found. Please run database.sql first.');
     }
 
-    $urlsTableExists = $pdo->query("
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'urls'
-        )
-    ")->fetchColumn();
-
-    if (!$urlsTableExists) {
-        $pdo->exec("CREATE TABLE urls (
-            id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            name varchar(255) NOT NULL UNIQUE,
-            created_at timestamp DEFAULT CURRENT_TIMESTAMP
-        )");
-    }
-
-    $checksTableExists = $pdo->query("
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'url_checks'
-        )
-    ")->fetchColumn();
-
-    if (!$checksTableExists) {
-        $pdo->exec("CREATE TABLE url_checks (
-            id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-            url_id bigint NOT NULL,
-            status_code smallint,
-            h1 varchar(255),
-            title varchar(255),
-            description text,
-            created_at timestamp 
-        )");
-    }
 } catch (\PDOException $e) {
     echo "Database error: " . $e->getMessage();
+    exit;
+} catch (\RuntimeException $e) {
+    echo $e->getMessage();
     exit;
 }
 
