@@ -71,7 +71,6 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     if (isset($check['status_code']) && !empty($check['status_code'])) {
         try {
             $query = new Query($pdo, 'url_checks');
-            $newId = $query->insertValuesChecks($check);
         } catch (\PDOException $e) {
             echo $e->getMessage();
         }
