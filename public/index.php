@@ -90,7 +90,6 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     if (isset($check['status_code']) && !empty($check['status_code'])) {
         try {
             $query = new Query($pdo, 'url_checks');
-            $newId = $query->insertValuesChecks($check);
         } catch (\PDOException $e) {
             echo $e->getMessage();
         }
@@ -119,10 +118,12 @@ $app->post('/urls', function ($request, $response) use ($router) {
                 $idFound = $item['id'];
             }
         }
+        $newId = null;
         if (!isset($urlFound)) {
             try {
                 $pdo = Connection::get()->connect();
                 $query = new Query($pdo, 'urls');
+                $newId = $query->insertValues($url['name'], $url['date']);
             } catch (\PDOException $e) {
                 echo $e->getMessage();
             }
@@ -130,7 +131,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
         } else {
             $this->get('flash')->addMessage('success', 'Страница уже существует');
         }
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound]), 302);
+        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound ?? $newId]), 302);
     }
     $params = ['url' => $url, 'errors' => $errors];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
