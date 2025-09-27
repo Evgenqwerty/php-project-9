@@ -37,7 +37,7 @@ $router = $app->getRouteCollector()->getRouteParser();
 $app->get('/', function ($request, $response) {
     $params = ['greeting' => 'Welcome'];
     return $this->get('renderer')->render($response, 'main.phtml', $params);
-});
+})->setName('home');
 
 $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) use ($router) {
     $check['url_id'] = $args['url_id'];
@@ -78,7 +78,7 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     }
     $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     return $response->withRedirect($router->urlFor('show_url_info', ['id' => $args['url_id']]), 302);
-});
+})->setName('url_checks');
 
 $app->post('/urls', function ($request, $response) use ($router) {
     $url = $request->getParsedBodyParam('url');
@@ -117,7 +117,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
     }
     $params = ['url' => $url, 'errors' => $errors];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
-});
+})->setName('urls_create');
 
 $app->get('/urls/{id}', function ($request, $response, $args) {
     $pdo = Connection::get()->connect();
