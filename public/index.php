@@ -24,7 +24,6 @@ try {
     if (!$urlsTableExists || !$checksTableExists) {
         throw new \RuntimeException('Database tables not found. Please run database.sql first.');
     }
-
 } catch (\PDOException $e) {
     echo "Database error: " . $e->getMessage();
     exit;
