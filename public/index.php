@@ -140,38 +140,26 @@ $app->get('/urls', function ($request, $response) {
     $pdo = Connection::get()->connect();
 
     // Получаем все URL
-    $urls = $pdo->query("SELECT * FROM urls ORDER BY created_at DESC")->fetchAll();
-
-    // Получаем последние проверки для каждого URL (все поля)
-    $checksStmt = $pdo->query("
-        SELECT DISTINCT ON (url_id) *
-        FROM url_checks
-        ORDER BY url_id, created_at DESC
-    ");
-    $recentChecks = $checksStmt->fetchAll();
-
-    // Собираем данные в ассоциативный массив
-    $checksMap = Arr::keyBy($recentChecks, 'url_id');
-
-    // Объединяем данные
-    foreach ($urls as &$url) {
-        $urlId = $url['id'];
-
-        if (isset($checksMap[$urlId])) {
-            $check = $checksMap[$urlId];
-            $url['status_code'] = $check['status_code'];
-            $url['h1'] = $check['h1'];
-            $url['title'] = $check['title'];
-            $url['description'] = $check['description'];
-            $url['last_check_time'] = $check['created_at'];
-        } else {
-            $url['status_code'] = null;
-            $url['h1'] = null;
-            $url['title'] = null;
-            $url['description'] = null;
-            $url['last_check_time'] = null;
-        }
-    }
+    $urls = $pdo->query("
+        SELECT 
+            u.id,
+            u.name,
+            u.created_at,
+            uc.status_code,
+            uc.h1,
+            uc.title,
+            uc.description,
+            uc.created_at as last_check_time
+        FROM urls u
+        LEFT JOIN LATERAL (
+            SELECT *
+            FROM url_checks 
+            WHERE url_id = u.id 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        ) uc ON true
+        ORDER BY u.created_at DESC
+    ")->fetchAll();
 
     $params = ['urls' => $urls];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
