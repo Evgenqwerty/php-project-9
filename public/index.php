@@ -130,7 +130,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
         } else {
             $this->get('flash')->addMessage('success', 'Страница уже существует');
         }
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound]), 302);
+        return $response->withRedirect($router->urlFor('show_url_info', ['id'] => $idFound]), 302);
     }
     $params = ['url' => $url, 'errors' => $errors];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
