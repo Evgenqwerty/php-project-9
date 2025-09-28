@@ -39,11 +39,13 @@ $app->get('/', function ($request, $response) {
     return $this->get('renderer')->render($response, 'main.phtml', $params);
 })->setName('home');
 
-$app->post('/urls/{url_id}/checks', function ($request, $response, array $args) use ($router) {
+$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, array $args) use ($router) {
     $check['url_id'] = $args['url_id'];
     $check['date'] = date('Y-m-d H:i:s');
     $pdo = Connection::get()->connect();
-    $checkedUrl = $pdo->query("SELECT name FROM urls WHERE id = {$args['url_id']}")->fetchColumn();
+    $stmt = $pdo->prepare("SELECT name FROM urls WHERE id = :id");
+    $stmt->execute(['id' => $args['url_id']]);
+    $checkedUrl = $stmt->fetchColumn();
     try {
         $client = new Client();
         $guzzleResponse = $client->request('GET', $checkedUrl);
@@ -140,9 +142,9 @@ $app->get('/urls/{id:[0-9]+}', function (
     if (!isset($urlFound)) {
         return $response->withStatus(404);
     }
-    $stmt = $pdo->prepare("SELECT * FROM url_checks WHERE url_id = :url_id ORDER BY created_at DESC");
+    $stmt = $pdo->prepare("SELECT * FROM url_checks WHERE url_id = :url_id ORDER BY created_at ASC ");
     $stmt->execute(['url_id' => (int)$args['id']]);
-    $checks = $pdo->query("SELECT * FROM url_checks WHERE url_id = {$args['id']}")->fetchAll();
+    $checks = $stmt->fetchAll();
     $flashes = $this->get('flash')->getMessages();
     $params = ['url' => $urlFound, 'checks' => array_reverse($checks), 'flash' => $flashes];
     return $this->get('renderer')->render($response, 'show.phtml', $params);
