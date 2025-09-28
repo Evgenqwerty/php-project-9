@@ -10,6 +10,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
 use Vlucas\Valitron\Validator;
+
 session_start();
 
 if (PHP_SAPI === 'cli-server' && $_SERVER['SCRIPT_FILENAME'] !== __FILE__) {
@@ -108,7 +109,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
             $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
         }
 
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $id]), 302);
+        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $id]), 422);
     }
 
     $errors['name'] = reset($validator->errors())[0];
