@@ -10,6 +10,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
 use Illuminate\Support\Arr;
+use valitron\Validator;
 
 session_start();
 
@@ -80,42 +81,59 @@ $app->post('/urls/{url_id}/checks', function ($request, $response, array $args) 
     return $response->withRedirect($router->urlFor('show_url_info', ['id' => $args['url_id']]), 302);
 })->setName('url_checks');
 
-$app->post('/urls', function ($request, $response) use ($router) {
-    $url = $request->getParsedBodyParam('url');
-    $url['date'] = date('Y-m-d H:i:s');
-    $errors = [];
-    if ((filter_var($url['name'], FILTER_VALIDATE_URL) === false) or (!in_array(parse_url($url['name'], PHP_URL_SCHEME), ['http', 'https']))) {  // phpcs:ignore
-        $errors['name'] = 'Некорректный URL';
+$app->post('/urls', function (
+    Psr\Http\Message\ServerRequestInterface $request,
+    Psr\Http\Message\ResponseInterface $response
+) use ($router) {
+    $formData = $request->getParsedBody();
+    $urlName = $formData['url']['name'] ?? '';
+
+    $validator = new Valitron\Validator(['url' => ['name' => $urlName]]);
+    $validator->rule('required', ['url.name'])->message('URL не должен быть пустым');
+    $validator->rule('url', ['url.name'])->message('Некорректный URL');
+    $validator->labels(['url.name' => 'URL']);
+
+    // Дополнительная проверка схемы
+    if (filter_var($urlName, FILTER_VALIDATE_URL) !== false) {
+        $scheme = parse_url($urlName, PHP_URL_SCHEME);
+        if (!in_array($scheme, ['http', 'https'])) {
+            $validator->error('url.name', 'URL должен иметь схему http или https');
+        }
     }
-    if (strlen($url['name']) < 1) {
-        $errors['name'] = 'URL не должен быть пустым';
-    }
-    if (count($errors) === 0) {
-        $url['name'] = parse_url($url['name'], PHP_URL_SCHEME) . "://" . parse_url($url['name'], PHP_URL_HOST);
+
+    if ($validator->validate()) {
+        // Нормализация URL
+        $normalizedUrl = parse_url($urlName, PHP_URL_SCHEME) . "://" . parse_url($urlName, PHP_URL_HOST);
+        $createdAt = date('Y-m-d H:i:s');
+
         $pdo = Connection::get()->connect();
-        $currentUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
-        foreach ($currentUrls as $item) {
-            if ($item['name'] === $url['name']) {
-                $urlFound = $item;
-                $idFound = $item['id'];
-            }
-        }
-        $newId = null;
-        if (!isset($urlFound)) {
-            try {
-                $pdo = Connection::get()->connect();
-                $query = new Query($pdo, 'urls');
-                $newId = $query->insertValues($url['name'], $url['date']);
-            } catch (\PDOException $e) {
-                echo $e->getMessage();
-            }
-            $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
-        } else {
+
+        // Проверяем существование URL
+        $stmt = $pdo->prepare("SELECT id FROM urls WHERE name = :name");
+        $stmt->execute(['name' => $normalizedUrl]);
+        $existingUrl = $stmt->fetch();
+
+        if ($existingUrl) {
+            $id = $existingUrl['id'];
             $this->get('flash')->addMessage('success', 'Страница уже существует');
+        } else {
+            try {
+                $query = new Query($pdo, 'urls');
+                $id = $query->insertValues($normalizedUrl, $createdAt);
+                $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
+            } catch (\PDOException $e) {
+                $this->get('flash')->addMessage('failure', 'Ошибка при сохранении URL');
+                return $response->withRedirect($router->urlFor('home'), 302);
+            }
         }
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $idFound ?? $newId]), 302);
+
+        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $id]), 302);
     }
-    $params = ['url' => $url, 'errors' => $errors];
+
+    $params = [
+        'url' => ['name' => $urlName],
+        'errors' => $validator->errors()
+    ];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
 })->setName('urls_create');
 
