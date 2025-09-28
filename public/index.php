@@ -109,13 +109,18 @@ $app->post('/urls', function ($request, $response) use ($router) {
             $this->get('flash')->addMessage('success', 'Страница успешно добавлена');
         }
 
-        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $id]), 422);
+        return $response->withRedirect($router->urlFor('show_url_info', ['id' => $id]), 302);
     }
 
-    $errors['name'] = reset($validator->errors())[0];
+    $errors = $validator->errors();
+    $firstError = '';
+    if (!empty($errors['url.name'])) {
+        $firstError = is_array($errors['url.name']) ? $errors['url.name'][0] : $errors['url.name'];
+    }
+
     $params = [
         'url' => $formData['url'] ?? [],
-        'errors' =>  $errors
+        'errors' => ['name' => $firstError]
     ];
     return $this->get('renderer')->render($response->withStatus(422), "main.phtml", $params);
 })->setName('urls_create');
