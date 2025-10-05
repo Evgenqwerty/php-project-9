@@ -35,12 +35,19 @@ $app->addErrorMiddleware(true, true, true);
 
 $router = $app->getRouteCollector()->getRouteParser();
 
-$app->get('/', function ($request, $response) {
+$app->get('/', function (
+    Slim\Http\ServerRequest $request,
+    Slim\Http\Response $response,
+) {
     $params = ['greeting' => 'Welcome'];
     return $this->get('renderer')->render($response, 'main.phtml', $params);
 })->setName('home');
 
-$app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, array $args) use ($router) {
+$app->post('/urls/{url_id:[0-9]+}/checks', function (
+    Slim\Http\ServerRequest $request,
+    Slim\Http\Response $response,
+    array $args
+) use ($router) {
     $check['url_id'] = $args['url_id'];
     $check['date'] = Carbon::now();
     $pdo = Connection::get()->connect();
@@ -89,7 +96,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, array 
     return $response->withRedirect($router->urlFor('show_url_info', ['id' => $args['url_id']]), 302);
 })->setName('url_checks');
 
-$app->post('/urls', function ($request, $response) use ($router) {
+$app->post('/urls', function (
+    Slim\Http\ServerRequest $request,
+    Slim\Http\Response $response
+) use ($router) {
     $formData = $request->getParsedBody();
 
     $validator = new Valitron\Validator($formData);
@@ -157,7 +167,10 @@ $app->get('/urls/{id:[0-9]+}', function (
     return $this->get('renderer')->render($response, 'show.phtml', $params);
 })->setName('show_url_info');
 
-$app->get('/urls', function ($request, $response) {
+$app->get('/urls', function (
+    Slim\Http\ServerRequest $request,
+    Slim\Http\Response $response
+) {
     $pdo = Connection::get()->connect();
 
     // Получаем все URL
