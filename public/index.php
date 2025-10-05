@@ -176,25 +176,25 @@ $app->get('/urls', function (
 
     // Получаем все URL
     $urls = $pdo->query("
-        SELECT 
-            u.id,
-            u.name,
-            u.created_at,
-            uc.status_code,
-            uc.h1,
-            uc.title,
-            uc.description,
-            uc.created_at as last_check_time
-        FROM urls u
-        LEFT JOIN LATERAL (
-            SELECT *
-            FROM url_checks 
-            WHERE url_id = u.id 
-            ORDER BY created_at DESC 
+    SELECT 
+        u.*,
+        (
+            SELECT uc.created_at 
+            FROM url_checks uc 
+            WHERE uc.url_id = u.id 
+            ORDER BY uc.created_at DESC 
             LIMIT 1
-        ) uc ON true
-        ORDER BY u.created_at DESC
-    ")->fetchAll();
+        ) as last_check_time,
+        (
+            SELECT uc.status_code 
+            FROM url_checks uc 
+            WHERE uc.url_id = u.id 
+            ORDER BY uc.created_at DESC 
+            LIMIT 1
+        ) as status_code
+    FROM urls u
+    ORDER BY u.created_at DESC
+")->fetchAll();
 
     $params = ['urls' => $urls];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
