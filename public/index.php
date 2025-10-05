@@ -10,6 +10,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\TransferException;
 use DiDom\Document;
 use Vlucas\Valitron\Validator;
+use Carbon\Carbon;
 
 session_start();
 
@@ -41,7 +42,7 @@ $app->get('/', function ($request, $response) {
 
 $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, array $args) use ($router) {
     $check['url_id'] = $args['url_id'];
-    $check['date'] = date('Y-m-d H:i:s');
+    $check['date'] = Carbon::now();
     $pdo = Connection::get()->connect();
     $stmt = $pdo->prepare("SELECT name FROM urls WHERE id = :id");
     $stmt->execute(['id' => $args['url_id']]);
@@ -99,7 +100,7 @@ $app->post('/urls', function ($request, $response) use ($router) {
     if ($validator->validate()) {
         $urlName = $formData['url']['name'];
         $normalizedUrl = parse_url($urlName, PHP_URL_SCHEME) . "://" . parse_url($urlName, PHP_URL_HOST);
-        $createdAt = date('Y-m-d H:i:s');
+        $createdAt = Carbon::now();
 
         $pdo = Connection::get()->connect();
 
