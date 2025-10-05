@@ -18,6 +18,6 @@ CREATE TABLE url_checks (
                             h1 varchar(255),
                             title varchar(255),
                             description text,
-                            created_at timestamp DEFAULT CURRENT_TIMESTAMP
+                            created_at timestamp DEFAULT CURRENT_TIMESTAMP,
                             FOREIGN KEY (url_id) REFERENCES urls (id)
 );
