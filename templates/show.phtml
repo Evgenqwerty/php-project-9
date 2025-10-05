@@ -34,21 +34,21 @@
 
 <main class="flex-grow-1">
     <div class="container-lg mt-3">
-        <h1><?= $url['name'] ?></h1>
+        <h1><?= htmlspecialchars($url['name']); ?></h1>
         <div class="table-responsive">
             <table class="table table-bordered table-hover text-nowrap" data-test="url">
                 <tbody>
                 <tr>
                     <td>ID</td>
-                    <td><?= $url['id'] ?></td>
+                    <td><?= htmlspecialchars($url['id']); ?></td>
                 </tr>
                 <tr>
                     <td>Имя</td>
-                    <td><?= $url['name'] ?></td>
+                    <td><?= htmlspecialchars($url['name']); ?></td>
                 </tr>
                 <tr>
                     <td>Дата создания</td>
-                    <td><?= $url['created_at'] ?></td>
+                    <td><?= htmlspecialchars($url['created_at']); ?></td>
                 </tr>
                 </tbody>
             </table>
@@ -71,12 +71,12 @@
             <tbody>
                 <?php foreach ($checks as $check) : ?>
                     <tr>
-                        <td><?= $check['id'] ?></td>
-                        <td><?= $check['status_code'] ?></td>
+                        <td><?= htmlspecialchars($check['id']); ?></td>
+                        <td><?= htmlspecialchars($check['status_code']); ?></td>
                         <td><?= htmlspecialchars($check['h1'] ?? '') ?></td>
                         <td><?= htmlspecialchars($check['title'] ?? '') ?></td>
                         <td><?= htmlspecialchars($check['description'] ?? '') ?></td>
-                        <td><?= $check['created_at'] ?></td>
+                        <td><?= htmlspecialchars($check['created_at']); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

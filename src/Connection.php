@@ -68,4 +68,16 @@ final class Connection
     protected function __construct()
     {
     }
+
+    private function __clone()
+    {
+    }
+
+    /**
+     * Запрещаем десериализацию
+     */
+    public function __wakeup()
+    {
+        throw new \Exception("Cannot unserialize singleton");
+    }
 }
