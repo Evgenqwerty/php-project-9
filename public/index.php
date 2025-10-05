@@ -150,15 +150,16 @@ $app->get('/urls/{id:[0-9]+}', function (
     array $args
 ) {
     $pdo = Connection::get()->connect();
-    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll();
-    foreach ($allUrls as $item) {
-        if ($item['id'] == $args['id']) {
-            $urlFound = $item;
-        }
-    }
-    if (!isset($urlFound)) {
+
+    // Один запрос для поиска конкретного URL по id
+    $stmt = $pdo->prepare("SELECT * FROM urls WHERE id = :id");
+    $stmt->execute(['id' => (int)$args['id']]);
+    $urlFound = $stmt->fetch();
+
+    if (!$urlFound) {
         return $response->withStatus(404);
     }
+
     $stmt = $pdo->prepare("SELECT * FROM url_checks WHERE url_id = :url_id ORDER BY created_at ASC ");
     $stmt->execute(['url_id' => (int)$args['id']]);
     $checks = $stmt->fetchAll();
