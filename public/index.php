@@ -53,9 +53,11 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function ($request, $response, array 
     } catch (TransferException $e) {
         $this->get('flash')->addMessage('failure', 'Произошла ошибка при проверке, не удалось подключиться');
     }
-    $htmlContent = (string) $guzzleResponse->getBody();
-    $document = new Document();
-    $document->loadHtml($htmlContent);
+    if(isset($guzzleResponse)) {
+        $htmlContent = (string)$guzzleResponse->getBody();
+        $document = new Document();
+        $document->loadHtml($htmlContent);
+    }
     if ($document->has('h1')) {
         $h1Elements = $document->find('h1');
         if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
