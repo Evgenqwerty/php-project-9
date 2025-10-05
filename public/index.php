@@ -135,8 +135,8 @@ $app->post('/urls', function ($request, $response) use ($router) {
 })->setName('urls_create');
 
 $app->get('/urls/{id:[0-9]+}', function (
-    ServerRequest $request,
-    Response $response,
+    Slim\Http\ServerRequest $request,
+    Slim\Http\Response $response,
     array $args
 ) {
     $pdo = Connection::get()->connect();
