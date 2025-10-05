@@ -100,14 +100,14 @@ $app->post('/urls', function (
     Slim\Http\ServerRequest $request,
     Slim\Http\Response $response
 ) use ($router) {
-    $formData = $request->getParsedBody();
+    $formData = (array) $request->getParsedBody();
 
     $validator = new Valitron\Validator($formData);
     $validator->rule('required', ['url.name'])->message('URL не должен быть пустым');
     $validator->rule('url', ['url.name'])->message('Некорректный URL');
     $validator->labels(['url.name' => 'Url']);
 
-    if ($validator->validate()) {
+    if ($validator->validate() && isset($formData['url']['name'])) {
         $urlName = $formData['url']['name'];
         $normalizedUrl = parse_url($urlName, PHP_URL_SCHEME) . "://" . parse_url($urlName, PHP_URL_HOST);
         $createdAt = Carbon::now();
