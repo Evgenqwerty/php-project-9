@@ -32,11 +32,12 @@
             <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
                 <h1 class="display-3">Анализатор страниц</h1>
                 <p class="lead">Бесплатно проверяйте сайты на SEO пригодность</p>
-                <form action="/urls" method="post" class="row" required="">
+                <form action="/urls" method="post" class="row">
                     <div class="col-8">
                         <input type="text" name="url[name]" value="<?= htmlspecialchars($url['name'] ?? ''); ?>"
                                class="form-control form-control-lg <?php if (isset($errors)) : ?> is-invalid"<?php endif ?>
-                               placeholder="https://www.example.com">
+                               placeholder="https://www.example.com"
+                               required="">
                         <?php if (isset($errors['name'])) : ?>
                             <div class="invalid-feedback d-block"><?= $errors['name'] ?></div>
                         <?php endif ?>
