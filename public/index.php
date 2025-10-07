@@ -58,40 +58,54 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
         $client = new Client();
         $guzzleResponse = $client->request('GET', $checkedUrl);
         $check['status_code'] = $guzzleResponse->getStatusCode();
-    } catch (TransferException $e) {
-        $this->get('flash')->addMessage('failure', 'Произошла ошибка при проверке, не удалось подключиться');
+    } catch (ConnectException $e) {
+        $this->get('flash')->addMessage('failure', 'Не удалось установить соединение');
+    } catch (RequestException $e) {
+        // HTTP ошибки
+        if ($e->hasResponse()) {
+            $statusCode = $e->getResponse()->getStatusCode();
+            $this->get('flash')->addMessage('failure', "HTTP ошибка: {$statusCode}");
+        } else {
+            $this->get('flash')->addMessage('failure', 'Ошибка запроса');
+        }
     }
-    if (isset($guzzleResponse)) {
+
+
+
+
+
+
+
+
+
         $htmlContent = (string)$guzzleResponse->getBody();
         $document = new Document();
         $document->loadHtml($htmlContent);
-    }
-    if (isset($document)) {
-        if ($document->has('h1')) {
+
+    if ($document->has('h1')) {
             $h1Elements = $document->find('h1');
-            if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
+        if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
                 $check['h1'] = $h1Elements[0]->text();
-            }
         }
-        if ($document->has('title')) {
+    }
+    if ($document->has('title')) {
             $titleElements = $document->find('title');
-            if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
+        if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
                 $check['title'] = $titleElements[0]->text();
-            }
         }
-        if ($document->has('meta[name=description]')) {
+    }
+    if ($document->has('meta[name=description]')) {
             $desc = $document->find('meta[name=description]');
             $check['description'] = $desc[0]->getAttribute('content');
-        }
     }
-    if (isset($check['status_code']) && !empty($check['status_code'])) {
-        try {
+
+    try {
             $query = new Query($pdo, 'url_checks');
             $query->insertValuesChecks($check);
-        } catch (\PDOException $e) {
+    } catch (\PDOException $e) {
             echo $e->getMessage();
-        }
     }
+
     $this->get('flash')->addMessage('success', 'Страница успешно проверена');
     return $response->withRedirect($router->urlFor('show_url_info', ['id' => $args['url_id']]), 302);
 })->setName('url_checks');
