@@ -79,13 +79,13 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     }
 
     if (isset($document)) {
-        if ($element = $document->first('h1')) {
+        if ($element = $document->find('h1')) {
             $check['h1'] = $element->text();
         }
-        if ($element = $document->first('title')) {
+        if ($element = $document->find('title')) {
             $check['title'] = $element->text();
         }
-        if ($element = $document->first('meta[name="description"]')) {
+        if ($element = $document->find('meta[name="description"]')) {
             $check['description'] = $element->getAttribute('content');
         }
     }
