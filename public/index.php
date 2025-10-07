@@ -77,22 +77,15 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
         $document = new Document();
         $document->loadHtml($htmlContent);
     }
-
     if (isset($document)) {
-        /** @var \DiDom\Element|null $h1Element */
-        $h1Elements = $document->find('h1');
-        if (!empty($h1Elements)) {
-            $check['h1'] = $h1Elements[0]->text();
+        if ($document->find('h1')) {
+            $check['h1'] = (string) $document->first('h1')->text();
         }
-        /** @var \DiDom\Element|null $h1Element */
-        $titleElements = $document->find('title');
-        if (!empty($titleElements)) {
-            $check['title'] = $titleElements[0]->text();
+        if ($document->find('title')) {
+            $check['title'] = (string) $document->first('title')->text();
         }
-        /** @var \DiDom\Element|null $h1Element */
-        $metaElements = $document->find('meta[name="description"]');
-        if (!empty($metaElements)) {
-            $check['description'] = $metaElements[0]->getAttribute('content');
+        if ($document->find('meta[name="description"]')) {
+            $check['description'] = $document->first('meta[name="description"]')->getAttribute('content');
         }
     }
     try {
