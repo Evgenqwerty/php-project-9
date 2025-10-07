@@ -79,24 +79,16 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     }
 
     if (isset($document)) {
-        if ($document->has('h1')) {
-            $h1Elements = $document->find('h1');
-            if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
-                $check['h1'] = $h1Elements[0]->text();
-            }
+        if ($element = $document->first('h1')) {
+            $check['h1'] = $element->text();
         }
-        if ($document->has('title')) {
-            $titleElements = $document->find('title');
-            if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
-                $check['title'] = $titleElements[0]->text();
-            }
+        if ($element = $document->first('title')) {
+            $check['title'] = $element->text();
         }
-        if ($document->has('meta[name=description]')) {
-            $desc = $document->find('meta[name=description]');
-            $check['description'] = $desc[0]->getAttribute('content');
+        if ($element = $document->first('meta[name="description"]')) {
+            $check['description'] = $element->getAttribute('content');
         }
     }
-
     try {
             $query = new Query($pdo, 'url_checks');
             $query->insertValuesChecks($check);
