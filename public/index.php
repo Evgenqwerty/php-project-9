@@ -185,28 +185,20 @@ $app->get('/urls', function (
     $pdo = Connection::get()->connect();
 
     // Получаем все URL
-    $urls = $pdo->query("
-    SELECT 
-        u.*,
-        (
-            SELECT uc.created_at 
-            FROM url_checks uc 
-            WHERE uc.url_id = u.id 
-            ORDER BY uc.created_at DESC 
-            LIMIT 1
-        ) as last_check_time,
-        (
-            SELECT uc.status_code 
-            FROM url_checks uc 
-            WHERE uc.url_id = u.id 
-            ORDER BY uc.created_at DESC 
-            LIMIT 1
-        ) as status_code
-    FROM urls u
-    ORDER BY u.created_at DESC
-")->fetchAll();
-
-    $params = ['urls' => $urls];
+    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
+    $recentChecks = $pdo->query("SELECT DISTINCT ON (url_id) url_id, created_at, status_code
+                                 FROM url_checks
+                                 ORDER BY url_id, created_at DESC;")->fetchAll(\PDO::FETCH_ASSOC);
+    $combined = array_map(function ($url) use ($recentChecks) {
+        foreach ($recentChecks as $recCheck) {
+            if ($url['id'] === $recCheck['url_id']) {
+                $url['last_check_time'] = $recCheck['created_at'];
+                $url['status_code'] = $recCheck['status_code'];
+            }
+        }
+        return $url;
+    }, $allUrls);
+    $params = ['urls' => array_reverse($combined)];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
 })->setName('list');
 $app->run();

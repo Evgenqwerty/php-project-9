@@ -39,7 +39,7 @@
                                placeholder="https://www.example.com"
                                required="">
                         <?php if (isset($errors['name'])) : ?>
-                            <div class="invalid-feedback d-block"><?= $errors['name'] ?></div>
+                            <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['name']); ?></div>
                         <?php endif ?>
                     </div>
                     <div class="col-2">
