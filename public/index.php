@@ -79,14 +79,19 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     }
 
     if (isset($document)) {
-        if ($element = $document->find('h1')) {
-            $check['h1'] = $element->text();
+        $h1Elements = $document->find('h1');
+        if (!empty($h1Elements)) {
+            $check['h1'] = $h1Elements[0]->text();
         }
-        if ($element = $document->find('title')) {
-            $check['title'] = $element->text();
+
+        $titleElements = $document->find('title');
+        if (!empty($titleElements)) {
+            $check['title'] = $titleElements[0]->text();
         }
-        if ($element = $document->find('meta[name="description"]')) {
-            $check['description'] = $element->getAttribute('content');
+
+        $metaElements = $document->find('meta[name="description"]');
+        if (!empty($metaElements)) {
+            $check['description'] = $metaElements[0]->getAttribute('content');
         }
     }
     try {
