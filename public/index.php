@@ -79,16 +79,17 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     }
 
     if (isset($document)) {
+        /** @var \DiDom\Element|null $h1Element */
         $h1Elements = $document->find('h1');
         if (!empty($h1Elements)) {
             $check['h1'] = $h1Elements[0]->text();
         }
-
+        /** @var \DiDom\Element|null $h1Element */
         $titleElements = $document->find('title');
         if (!empty($titleElements)) {
             $check['title'] = $titleElements[0]->text();
         }
-
+        /** @var \DiDom\Element|null $h1Element */
         $metaElements = $document->find('meta[name="description"]');
         if (!empty($metaElements)) {
             $check['description'] = $metaElements[0]->getAttribute('content');
