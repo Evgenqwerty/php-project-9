@@ -78,21 +78,23 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
         $document->loadHtml($htmlContent);
     }
 
-    if ($document->has('h1')) {
+    if (isset($document)) {
+        if ($document->has('h1')) {
             $h1Elements = $document->find('h1');
-        if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
+            if (!empty($h1Elements) && $h1Elements[0] instanceof \DiDom\Element) {
                 $check['h1'] = $h1Elements[0]->text();
+            }
         }
-    }
-    if ($document->has('title')) {
+        if ($document->has('title')) {
             $titleElements = $document->find('title');
-        if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
+            if (!empty($titleElements) && $titleElements[0] instanceof \DiDom\Element) {
                 $check['title'] = $titleElements[0]->text();
+            }
         }
-    }
-    if ($document->has('meta[name=description]')) {
+        if ($document->has('meta[name=description]')) {
             $desc = $document->find('meta[name=description]');
             $check['description'] = $desc[0]->getAttribute('content');
+        }
     }
 
     try {
