@@ -7,7 +7,8 @@ use DI\Container;
 use Hexlet\Code\Connection;
 use Hexlet\Code\Query;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use DiDom\Document;
 use Vlucas\Valitron\Validator;
 use Carbon\Carbon;
@@ -68,16 +69,10 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
         } else {
             $this->get('flash')->addMessage('failure', 'Ошибка запроса');
         }
+    } catch (Exception $e) {
+        $this->get('flash')->addMessage('failure', 'Произошла непредвиденная ошибка');
+        return;
     }
-
-
-
-
-
-
-
-
-
         $htmlContent = (string)$guzzleResponse->getBody();
         $document = new Document();
         $document->loadHtml($htmlContent);
