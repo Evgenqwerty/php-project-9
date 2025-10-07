@@ -64,18 +64,19 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     } catch (RequestException $e) {
         // HTTP ошибки
         if ($e->hasResponse()) {
-            $statusCode = $e->getResponse()->getStatusCode();
-            $this->get('flash')->addMessage('failure', "HTTP ошибка: {$statusCode}");
+            $statusCode = $e->getResponse();
+            $this->get('flash')->addMessage('failure', "Ошибка HTTP");
         } else {
             $this->get('flash')->addMessage('failure', 'Ошибка запроса');
         }
     } catch (Exception $e) {
         $this->get('flash')->addMessage('failure', 'Произошла непредвиденная ошибка');
-        return;
     }
+    if (isset($guzzleResponse)) {
         $htmlContent = (string)$guzzleResponse->getBody();
         $document = new Document();
         $document->loadHtml($htmlContent);
+    }
 
     if ($document->has('h1')) {
             $h1Elements = $document->find('h1');
