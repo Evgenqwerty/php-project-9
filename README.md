@@ -3,7 +3,7 @@
 
 # Описание
 
-["Анализатор страниц"](https://php-project-9-production-972a.up.railway.app/) - сайт, который анализирует указанные страницы на SEO пригодность по аналогии с PageSpeed Insights
+["Анализатор страниц"](https://php-project-9-lpp2.onrender.com) - сайт, который анализирует указанные страницы на SEO пригодность по аналогии с PageSpeed Insights
 
 # О проекте
 

@@ -74,9 +74,9 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
     }
     if (isset($guzzleResponse)) {
         $htmlContent = (string)$guzzleResponse->getBody();
-        $document = new Document();
-        $document->loadHtml($htmlContent);
+        $document = new Document($htmlContent);
     }
+    // в слим нет метода optional(), все остальные способы упростить код не проходят phpstan в hexlet-check
     if (isset($document)) {
         if ($document->has('h1')) {
             $h1Elements = $document->find('h1');
@@ -183,21 +183,26 @@ $app->get('/urls', function (
     Slim\Http\Response $response
 ) {
     $pdo = Connection::get()->connect();
+//distinct, без циклов, fetchAll в отдельной строке
+    $allUrlsQuery = $pdo->query("SELECT * FROM urls");
+    $allUrls = $allUrlsQuery->fetchAll(\PDO::FETCH_ASSOC);
 
-    // Получаем все URL
-    $allUrls = $pdo->query("SELECT * FROM urls")->fetchAll(\PDO::FETCH_ASSOC);
-    $recentChecks = $pdo->query("SELECT DISTINCT ON (url_id) url_id, created_at, status_code
-                                 FROM url_checks
-                                 ORDER BY url_id, created_at DESC;")->fetchAll(\PDO::FETCH_ASSOC);
-    $combined = array_map(function ($url) use ($recentChecks) {
-        foreach ($recentChecks as $recCheck) {
-            if ($url['id'] === $recCheck['url_id']) {
-                $url['last_check_time'] = $recCheck['created_at'];
-                $url['status_code'] = $recCheck['status_code'];
-            }
-        }
+    $recentChecksQuery = $pdo->query("
+    SELECT DISTINCT ON (url_id) url_id, created_at, status_code
+    FROM url_checks
+    ORDER BY url_id, created_at DESC
+");
+    $recentChecks = $recentChecksQuery->fetchAll(\PDO::FETCH_ASSOC);
+
+    $checksMap = array_column($recentChecks, null, 'url_id');
+
+    $combined = array_map(function ($url) use ($checksMap) {
+        $check = $checksMap[$url['id']] ?? null;
+        $url['last_check_time'] = $check['created_at'] ?? null;
+        $url['status_code'] = $check['status_code'] ?? null;
         return $url;
     }, $allUrls);
+
     $params = ['urls' => array_reverse($combined)];
     return $this->get('renderer')->render($response, 'list.phtml', $params);
 })->setName('list');
