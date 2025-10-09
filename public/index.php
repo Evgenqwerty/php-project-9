@@ -12,6 +12,8 @@ use GuzzleHttp\Exception\RequestException;
 use DiDom\Document;
 use Vlucas\Valitron\Validator;
 use Carbon\Carbon;
+use Illuminate\Support\Optional;
+use Illuminate\Support\Arr;
 
 session_start();
 
@@ -76,24 +78,16 @@ $app->post('/urls/{url_id:[0-9]+}/checks', function (
         $htmlContent = (string)$guzzleResponse->getBody();
         $document = new Document($htmlContent);
     }
-    // в слим нет метода optional(), все остальные способы упростить код не проходят phpstan в hexlet-check
+
     if (isset($document)) {
-        if ($document->has('h1')) {
-            $h1Elements = $document->find('h1');
-            if ($h1Elements[0] instanceof \DiDom\Element) {
-                $check['h1'] = $h1Elements[0]->text();
-            }
-        }
-        if ($document->has('title')) {
-            $titleElements = $document->find('title');
-            if ($titleElements[0] instanceof \DiDom\Element) {
-                $check['title'] = $titleElements[0]->text();
-            }
-        }
-        if ($document->has('meta[name=description]')) {
-            $desc = $document->find('meta[name=description]');
-            $check['description'] = $desc[0]->getAttribute('content');
-        }
+        $h1Element = $document->first('h1');
+        $check['h1'] = (string) optional($h1Element)->text();
+
+        $titleElement = $document->first('title');
+        $check['title'] = (string) optional($titleElement)->text();
+
+        $metaElement = $document->first('meta[name="description"]');
+        $check['description'] = (string) optional($metaElement)->getAttribute('content');
     }
     try {
             $query = new Query($pdo, 'url_checks');
@@ -183,7 +177,7 @@ $app->get('/urls', function (
     Slim\Http\Response $response
 ) {
     $pdo = Connection::get()->connect();
-//distinct, без циклов, fetchAll в отдельной строке
+
     $allUrlsQuery = $pdo->query("SELECT * FROM urls");
     $allUrls = $allUrlsQuery->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -194,8 +188,7 @@ $app->get('/urls', function (
 ");
     $recentChecks = $recentChecksQuery->fetchAll(\PDO::FETCH_ASSOC);
 
-    $checksMap = array_column($recentChecks, null, 'url_id');
-
+    $checksMap = Arr::keyBy($recentChecks, 'url_id');
     $combined = array_map(function ($url) use ($checksMap) {
         $check = $checksMap[$url['id']] ?? null;
         $url['last_check_time'] = $check['created_at'] ?? null;
